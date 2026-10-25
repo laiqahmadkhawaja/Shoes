@@ -1,0 +1,343 @@
+/* assets/css/style.css - Shoes Shop Management System Custom Styles */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary-color: #0f172a;
+  --accent-color: #0284c7;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --bg-light: #f8fafc;
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+.main-content {
+  flex: 1;
+  padding-bottom: 2.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Navbar */
+.navbar-custom {
+  background: linear-gradient(135deg, #090d16 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.navbar-custom .navbar-brand {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #ffffff !important;
+  font-size: 1.15rem;
+}
+.navbar-custom .nav-link {
+  color: #e2e8f0 !important;
+  font-weight: 500;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.65rem !important;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.navbar-custom .nav-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.navbar-custom .nav-link.active {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+/* POS Nav Button */
+.btn-nav-pos {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  padding: 0.45rem 0.9rem !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+.btn-nav-pos:hover {
+  background: #2563eb !important;
+  transform: translateY(-1px);
+}
+
+/* KPI Cards */
+.kpi-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  background: #ffffff;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+}
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+/* Size Badge Matrix */
+.size-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  margin: 2px;
+  background-color: #e2e8f0;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+.size-badge.in-stock {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+.size-badge.low-stock {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.size-badge.out-of-stock {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+  text-decoration: line-through;
+}
+
+/* POS Screen Layout */
+.pos-wrapper {
+  min-height: calc(100vh - 65px);
+}
+.pos-catalog-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #ffffff;
+  overflow: hidden;
+}
+.pos-catalog-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+  transform: translateY(-2px);
+}
+.pos-cart-panel {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 90px);
+}
+.pos-cart-items {
+  flex: 1;
+  overflow-y: auto;
+}
+.pos-cart-total {
+  background: #f8fafc;
+  border-top: 2px dashed #cbd5e1;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Color swatch preview circle */
+.color-swatch-sm {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+  border: 1px solid #94a3b8;
+  vertical-align: middle;
+}
+
+/* Matrix Table */
+.table-matrix th, .table-matrix td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.5rem 0.4rem;
+}
+.matrix-cell-stock {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Barcode print container */
+.barcode-label-box {
+  width: 50mm;
+  height: 35mm;
+  border: 1px dashed #94a3b8;
+  padding: 4px;
+  margin: 4px;
+  display: inline-block;
+  text-align: center;
+  page-break-inside: avoid;
+  background: #fff;
+}
+
+/* Responsive Table Wrapper */
+.table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Thermal Receipt Print Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-container, .receipt-container * {
+    visibility: visible;
+  }
+  .receipt-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 2mm;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #000;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Camera Barcode Scanner Viewfinder */
+#camera_reader {
+  width: 100% !important;
+  border: none !important;
+}
+#camera_reader video {
+  width: 100% !important;
+  max-height: 380px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+#camera_reader__scan_region {
+  background: transparent !important;
+}
+#camera_reader__dashboard {
+  padding: 8px !important;
+}
+
+/* Mobile Responsive Optimizations */
+@media (max-width: 991.98px) {
+  .navbar-custom .navbar-collapse {
+    background: #090e1a;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+  .navbar-custom .dropdown-menu {
+    position: static !important;
+    float: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background-color: #ffffff !important;
+    margin: 0.35rem 0 !important;
+    width: 100% !important;
+  }
+  .navbar-custom .dropdown-menu .dropdown-item {
+    color: #1e293b !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  .navbar-custom .dropdown-menu .dropdown-item:hover {
+    background-color: #f1f5f9 !important;
+  }
+  .pos-cart-panel {
+    height: auto !important;
+    min-height: 380px;
+    margin-bottom: 5.5rem; /* Space for mobile floating cart bar */
+  }
+  .pos-wrapper {
+    min-height: auto;
+  }
+  .navbar-custom .navbar-brand {
+    font-size: 1rem;
+    max-width: calc(100% - 50px);
+  }
+  .navbar-custom .navbar-brand span:last-child {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .pos-catalog-card {
+    border-radius: 8px;
+  }
+  .kpi-card {
+    padding: 0.75rem !important;
+  }
+  .kpi-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+  .table-responsive {
+    font-size: 0.82rem;
+  }
+  .modal-dialog {
+    margin: 0.5rem auto;
+    max-width: 96%;
+  }
+}
+
+/* Smooth Horizontal Scroll for Category Pills & Navigation */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none; /* Chrome & Safari */
+}
