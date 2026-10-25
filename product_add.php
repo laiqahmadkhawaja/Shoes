@@ -64,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 2)");
 
                 $created_count = 0;
+                $custom_barcode = trim($_POST['custom_barcode'] ?? '');
+                $total_variants_to_create = count($selected_colors) * count($selected_sizes);
+
                 foreach ($selected_colors as $color_id) {
                     // Fetch color name for SKU
                     $c_stmt = $db->prepare("SELECT name FROM colors WHERE id = ?");
@@ -79,10 +82,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $var_stock = isset($_POST['variant_stock'][$color_id][$size_id]) ? (int)$_POST['variant_stock'][$color_id][$size_id] : $initial_stock_default;
                         if ($var_stock < 0) $var_stock = 0;
 
-                        // Generate SKU & Unique Barcode
+                        // Generate SKU
                         $sku = "{$article_code}-{$c_name}-{$s_num}";
-                        // Barcode: 890 + numeric product_id (padded 4) + color_id (2) + size_id (2)
-                        $barcode = sprintf("890%04d%02d%02d", $product_id, (int)$color_id, (int)$size_id);
+
+                        // Barcode determination: Custom barcode or Auto-generated
+                        $auto_barcode = sprintf("890%04d%02d%02d", $product_id, (int)$color_id, (int)$size_id);
+                        if (!empty($custom_barcode)) {
+                            if ($total_variants_to_create === 1) {
+                                $barcode = $custom_barcode;
+                            } else {
+                                $barcode = "{$custom_barcode}-{$s_num}";
+                            }
+                        } else {
+                            $barcode = $auto_barcode;
+                        }
+
+                        // Verify uniqueness against existing barcodes
+                        $chk_bc = $db->prepare("SELECT id FROM product_variants WHERE barcode = ?");
+                        $chk_bc->execute([$barcode]);
+                        if ($chk_bc->fetch()) {
+                            $barcode = $auto_barcode; // fallback to unique auto code
+                        }
 
                         $var_stmt->execute([
                             $product_id,
@@ -226,6 +246,21 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="col-md-4">
                             <label class="form-label small fw-bold text-secondary">Box Number</label>
                             <input type="text" name="box_number" class="form-control" placeholder="BOX-01">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">
+                                <i class="fa-solid fa-barcode text-primary me-1"></i> Manufacturer / Box Barcode # (Optional)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-barcode text-muted"></i></span>
+                                <input type="text" name="custom_barcode" class="form-control font-monospace" placeholder="Scan or enter box barcode (leave blank to auto-generate)" value="<?= clean($_POST['custom_barcode'] ?? '') ?>">
+                            </div>
+                            <div class="form-text">
+                                Leave blank to automatically generate unique system barcodes (<code>890...</code>) for each size and color.
+                            </div>
                         </div>
                     </div>
 

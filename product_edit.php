@@ -67,10 +67,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_variant_row'])
     $variant_cost = (float)$_POST['variant_cost'];
     $variant_price = (float)$_POST['variant_price'];
     $variant_stock = (int)$_POST['variant_stock'];
+    $variant_barcode = trim($_POST['variant_barcode'] ?? '');
 
-    $stmt = $db->prepare("UPDATE product_variants SET purchase_price = ?, selling_price = ?, stock_qty = ? WHERE id = ? AND product_id = ?");
-    $stmt->execute([$variant_cost, $variant_price, $variant_stock, $variant_id, $product_id]);
-    $success = "Variant stock & pricing updated!";
+    if (empty($variant_barcode)) {
+        $error = "Barcode cannot be empty!";
+    } else {
+        // Check duplicate barcode
+        $dup = $db->prepare("SELECT id FROM product_variants WHERE barcode = ? AND id != ?");
+        $dup->execute([$variant_barcode, $variant_id]);
+        if ($dup->fetch()) {
+            $error = "Barcode '{$variant_barcode}' is already in use by another shoe variant!";
+        } else {
+            $stmt = $db->prepare("UPDATE product_variants SET purchase_price = ?, selling_price = ?, stock_qty = ?, barcode = ? WHERE id = ? AND product_id = ?");
+            $stmt->execute([$variant_cost, $variant_price, $variant_stock, $variant_barcode, $variant_id, $product_id]);
+            log_audit('UPDATE', 'VARIANT', $variant_id, "Updated variant stock/pricing/barcode for product ID {$product_id}");
+            $success = "Variant stock, pricing & barcode updated!";
+        }
+    }
 }
 
 // Handle Add Single Variant to this Shoe Model
@@ -80,24 +93,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_variant'])
     $purchase_price = (float)$_POST['new_purchase_price'];
     $selling_price = (float)$_POST['new_selling_price'];
     $stock_qty = (int)$_POST['new_stock_qty'];
+    $new_barcode = trim($_POST['new_barcode'] ?? '');
 
-    // Check duplicate
+    // Check duplicate combination
     $chk = $db->prepare("SELECT id FROM product_variants WHERE product_id = ? AND size_id = ? AND color_id = ?");
     $chk->execute([$product_id, $size_id, $color_id]);
     if ($chk->fetch()) {
         $error = "This size and color combination already exists for this shoe model.";
     } else {
-        // Generate SKU & Barcode
-        $s_row = $db->query("SELECT size_number FROM sizes WHERE id = $size_id")->fetch();
-        $c_row = $db->query("SELECT name FROM colors WHERE id = $color_id")->fetch();
-        $color_prefix = strtoupper(substr($c_row['name'], 0, 3));
-        $sku = clean($product['article_code']) . "-{$color_prefix}-{$s_row['size_number']}";
-        $barcode = '89' . str_pad($product_id, 4, '0', STR_PAD_LEFT) . str_pad($size_id, 2, '0', STR_PAD_LEFT) . str_pad($color_id, 2, '0', STR_PAD_LEFT);
+        // Determine Barcode: Custom or Auto-generated
+        if (!empty($new_barcode)) {
+            $barcode = $new_barcode;
+        } else {
+            $barcode = '89' . str_pad($product_id, 4, '0', STR_PAD_LEFT) . str_pad($size_id, 2, '0', STR_PAD_LEFT) . str_pad($color_id, 2, '0', STR_PAD_LEFT);
+        }
 
-        $ins = $db->prepare("INSERT INTO product_variants (product_id, size_id, color_id, sku, barcode, purchase_price, selling_price, stock_qty) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $ins->execute([$product_id, $size_id, $color_id, $sku, $barcode, $purchase_price, $selling_price, $stock_qty]);
-        $success = "New variant added successfully!";
+        // Check duplicate barcode
+        $dup_bc = $db->prepare("SELECT id FROM product_variants WHERE barcode = ?");
+        $dup_bc->execute([$barcode]);
+        if ($dup_bc->fetch()) {
+            $error = "Barcode '{$barcode}' is already assigned to another variant. Please enter a unique barcode or leave blank.";
+        } else {
+            $s_row = $db->query("SELECT size_number FROM sizes WHERE id = $size_id")->fetch();
+            $c_row = $db->query("SELECT name FROM colors WHERE id = $color_id")->fetch();
+            $color_prefix = strtoupper(substr($c_row['name'] ?? 'COL', 0, 3));
+            $sku = clean($product['article_code']) . "-{$color_prefix}-" . ($s_row['size_number'] ?? '00');
+
+            $ins = $db->prepare("INSERT INTO product_variants (product_id, size_id, color_id, sku, barcode, purchase_price, selling_price, stock_qty) 
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $ins->execute([$product_id, $size_id, $color_id, $sku, $barcode, $purchase_price, $selling_price, $stock_qty]);
+            $success = "New variant with barcode '{$barcode}' added successfully!";
+        }
     }
 }
 
@@ -272,7 +298,7 @@ require_once __DIR__ . '/includes/header.php';
                             <tr>
                                 <th>Color</th>
                                 <th>Size</th>
-                                <th>Barcode</th>
+                                <th style="min-width: 170px;">Barcode #</th>
                                 <th style="width: 100px;">Cost (Rs.)</th>
                                 <th style="width: 100px;">Price (Rs.)</th>
                                 <th style="width: 90px;" class="text-center">Stock</th>
@@ -290,7 +316,12 @@ require_once __DIR__ . '/includes/header.php';
                                             <?= clean($v['color_name']) ?>
                                         </td>
                                         <td class="fw-bold fs-6"><?= clean($v['size_number']) ?></td>
-                                        <td><code><?= clean($v['barcode']) ?></code></td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text p-1 text-muted"><i class="fa-solid fa-barcode"></i></span>
+                                                <input type="text" name="variant_barcode" class="form-control form-control-sm p-1 font-monospace" value="<?= clean($v['barcode']) ?>" required placeholder="Scan/Enter barcode">
+                                            </div>
+                                        </td>
                                         <td>
                                             <input type="number" step="0.01" name="variant_cost" class="form-control form-control-sm p-1" value="<?= $v['purchase_price'] ?>">
                                         </td>
@@ -301,7 +332,7 @@ require_once __DIR__ . '/includes/header.php';
                                             <input type="number" name="variant_stock" class="form-control form-control-sm p-1 text-center fw-bold" value="<?= $v['stock_qty'] ?>">
                                         </td>
                                         <td class="text-center">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary p-1" title="Save Row">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary p-1 px-2" title="Save Row Changes">
                                                 <i class="fa-solid fa-check"></i>
                                             </button>
                                         </td>
@@ -355,9 +386,19 @@ require_once __DIR__ . '/includes/header.php';
                             <input type="number" step="0.01" name="new_selling_price" class="form-control" required value="<?= $product['base_selling_price'] ?>">
                         </div>
                     </div>
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">Initial Stock (Pairs)</label>
                         <input type="number" name="new_stock_qty" class="form-control" value="0">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">
+                            <i class="fa-solid fa-barcode text-primary me-1"></i> Barcode # (Optional)
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-barcode text-muted"></i></span>
+                            <input type="text" name="new_barcode" class="form-control font-monospace" placeholder="Scan or enter box barcode (leave blank to auto-generate)">
+                        </div>
+                        <div class="form-text">Leave blank to auto-generate a unique system barcode</div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">

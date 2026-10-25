@@ -20,9 +20,10 @@ $sql = "SELECT p.*, b.name as brand_name, c.name as category_name,
 $params = [];
 
 if (!empty($q)) {
-    $sql .= " AND (p.name LIKE ? OR p.article_code LIKE ? OR p.rack_location LIKE ?)";
+    $sql .= " AND (p.name LIKE ? OR p.article_code LIKE ? OR p.rack_location LIKE ? 
+              OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.barcode LIKE ? OR pv.sku LIKE ?)))";
     $term = "%{$q}%";
-    $params = array_merge($params, [$term, $term, $term]);
+    $params = array_merge($params, [$term, $term, $term, $term, $term]);
 }
 if ($brand_id > 0) {
     $sql .= " AND p.brand_id = ?";
@@ -137,6 +138,15 @@ require_once __DIR__ . '/includes/header.php';
                             <tr>
                                 <td>
                                     <span class="badge bg-dark fs-6 px-2 py-1"><?= clean($p['article_code']) ?></span>
+                                    <?php 
+                                    $sample_bc_stmt = $db->prepare("SELECT barcode FROM product_variants WHERE product_id = ? LIMIT 1");
+                                    $sample_bc_stmt->execute([$p['id']]);
+                                    $sample_bc = $sample_bc_stmt->fetchColumn();
+                                    if ($sample_bc): ?>
+                                        <div class="mt-1 small text-muted font-monospace" style="font-size:0.73rem;" title="Sample Variant Barcode">
+                                            <i class="fa-solid fa-barcode text-secondary me-1"></i><?= clean($sample_bc) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="fw-bold text-dark"><?= clean($p['name']) ?></div>

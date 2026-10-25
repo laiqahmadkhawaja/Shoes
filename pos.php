@@ -461,6 +461,60 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<style>
+/* Camera Scanner HUD & Alignment Reticle */
+#camera_reader_container {
+    background: #000;
+    min-height: 280px;
+    max-height: 380px;
+    position: relative;
+    overflow: hidden;
+}
+
+#camera_reader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 8px;
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+#camera_reader_container .reticle-corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #0dcaf0;
+    border-style: solid;
+    pointer-events: none;
+}
+.corner-tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+.corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+.corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+
+.scanner-laser-line {
+    position: absolute;
+    left: 3%;
+    width: 94%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,40,40,0.95) 50%, rgba(255,0,0,0) 100%);
+    box-shadow: 0 0 10px 2px rgba(255, 40, 40, 0.8);
+    animation: laserScanAnim 2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes laserScanAnim {
+    0% { top: 6%; }
+    100% { top: 90%; }
+}
+
+.pulse-reticle {
+    box-shadow: 0 0 16px 3px rgba(13, 202, 240, 0.8) !important;
+    transition: box-shadow 0.3s ease;
+}
+</style>
+
 <!-- Modal 6: Camera Barcode Scanner Modal -->
 <div class="modal fade" id="cameraScannerModal" tabindex="-1" aria-labelledby="cameraScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
@@ -481,19 +535,56 @@ require_once __DIR__ . '/includes/header.php';
                     </select>
                 </div>
 
-                <!-- Scanner Viewport -->
-                <div id="camera_reader_container" class="position-relative bg-black rounded-3 overflow-hidden shadow-sm" style="min-height: 280px;">
+                <!-- Scanner Viewport with Alignment Reticle & Laser -->
+                <div id="camera_reader_container" class="position-relative bg-black rounded-3 overflow-hidden shadow-sm" style="min-height: 280px; max-height: 380px;">
                     <div id="camera_reader" style="width: 100%;"></div>
+
+                    <!-- Alignment HUD -->
+                    <div id="camera_scanner_hud" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="pointer-events: none; z-index: 10;">
+                        <!-- Reticle Target Box -->
+                        <div id="scanner_reticle" class="position-relative" style="width: 78%; height: 55%; border: 2px dashed rgba(255, 255, 255, 0.5); border-radius: 8px;">
+                            <span class="reticle-corner corner-tl"></span>
+                            <span class="reticle-corner corner-tr"></span>
+                            <span class="reticle-corner corner-bl"></span>
+                            <span class="reticle-corner corner-br"></span>
+                            <!-- Animated Laser Scan Line -->
+                            <div class="scanner-laser-line"></div>
+                        </div>
+                        <div class="mt-2 text-white small px-2 py-1 rounded bg-dark bg-opacity-75 shadow-sm" style="font-size: 0.72rem;">
+                            <i class="fa-solid fa-crosshairs text-info me-1"></i> Align barcode inside target window
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-3">
+                <!-- Zoom and Auto-Focus Controls Bar -->
+                <div id="camera_controls_bar" class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 px-2 py-1 bg-light rounded border">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="small fw-bold text-secondary me-1">
+                            <i class="fa-solid fa-magnifying-glass-plus text-primary"></i> Zoom:
+                        </span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2 zoom-btn" data-zoom="1">1x</button>
+                            <button type="button" class="btn btn-primary py-0 px-2 zoom-btn" data-zoom="1.5">1.5x</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2 zoom-btn" data-zoom="2">2x</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2 zoom-btn" data-zoom="3">3x</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" id="btn_toggle_torch" class="btn btn-sm btn-outline-warning py-0 px-2" style="display: none;">
+                            <i class="fa-solid fa-bolt"></i> <span id="torch_label">Torch</span>
+                        </button>
+                        <button type="button" id="btn_auto_align" class="btn btn-sm btn-outline-info py-0 px-2">
+                            <i class="fa-solid fa-arrows-to-dot"></i> Auto-Focus
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-2">
                     <span id="camera_scan_status" class="badge bg-secondary-subtle text-secondary px-3 py-2 fs-6">
-                        <i class="fa-solid fa-crosshairs me-1"></i> Align shoe barcode within camera frame
+                        <i class="fa-solid fa-crosshairs me-1"></i> Ready to scan shoe barcode
                     </span>
                 </div>
-                <p class="text-muted small mt-2 mb-0">
-                    Supports 1D Barcodes (Code 128, EAN-13, UPC) and 2D / QR Codes.
-                </p>
             </div>
             <div class="modal-footer bg-light py-2">
                 <button type="button" class="btn btn-secondary ms-auto px-4" data-bs-dismiss="modal">Close</button>
@@ -694,6 +785,26 @@ document.addEventListener('DOMContentLoaded', function() {
         stopCameraScanner();
     });
 
+    // Zoom Buttons Click Listeners
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            let z = parseFloat(this.getAttribute('data-zoom')) || 1.0;
+            applyCameraZoom(z);
+        });
+    });
+
+    // Torch Toggle
+    const torchBtn = document.getElementById('btn_toggle_torch');
+    if (torchBtn) {
+        torchBtn.addEventListener('click', toggleTorch);
+    }
+
+    // Auto-Focus & Align
+    const autoAlignBtn = document.getElementById('btn_auto_align');
+    if (autoAlignBtn) {
+        autoAlignBtn.addEventListener('click', triggerAutoAlign);
+    }
+
     // Global POS keyboard shortcuts
     window.addEventListener('keydown', function(e) {
         if (e.key === 'F2') {
@@ -709,10 +820,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Camera Barcode Scanner Functions
+// Camera Barcode Scanner Functions & Optimization
 let html5QrCodeScanner = null;
 let isCameraScanning = false;
 let availableCameras = [];
+let currentVideoTrack = null;
+let currentZoom = 1.5;
+let isTorchOn = false;
 
 function openCameraScanner() {
     const modalEl = document.getElementById('cameraScannerModal');
@@ -746,8 +860,7 @@ function initCameraScanner(cameraId) {
     }
 
     if (html5QrCodeScanner && isCameraScanning) {
-        html5QrCodeScanner.stop().then(() => {
-            isCameraScanning = false;
+        stopCameraScanner().then(() => {
             startNewScanner(cameraId);
         }).catch(() => {
             startNewScanner(cameraId);
@@ -757,72 +870,245 @@ function initCameraScanner(cameraId) {
     }
 
     function startNewScanner(camId) {
+        // Instantiate with native BarcodeDetector hardware acceleration enabled
         if (!html5QrCodeScanner) {
-            html5QrCodeScanner = new Html5Qrcode("camera_reader");
+            html5QrCodeScanner = new Html5Qrcode("camera_reader", {
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                },
+                verbose: false
+            });
         }
 
+        // Lightweight, performance-tuned scanner config (10 FPS prevents 100% CPU lockup)
         const config = {
-            fps: 15,
+            fps: 10,
             qrbox: function(viewfinderWidth, viewfinderHeight) {
                 let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                let edgeWeight = 0.75;
-                let qrboxEdge = Math.floor(minEdge * edgeWeight);
                 return {
-                    width: Math.min(320, qrboxEdge * 1.5),
-                    height: Math.min(180, qrboxEdge)
+                    width: Math.min(360, Math.floor(viewfinderWidth * 0.8)),
+                    height: Math.min(220, Math.floor(minEdge * 0.65))
                 };
             },
             aspectRatio: 1.333333,
+            disableFlip: true,
             formatsToSupport: [
+                Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.EAN_13,
                 Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
                 Html5QrcodeSupportedFormats.UPC_A,
                 Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_39,
                 Html5QrcodeSupportedFormats.QR_CODE
             ]
         };
 
-        const cameraConfig = camId ? { deviceId: { exact: camId } } : { facingMode: "environment" };
+        // Html5Qrcode expects cameraConfig as a direct deviceId string or an object with exactly 1 key (facingMode)
+        const cameraConfig = camId ? camId : { facingMode: "environment" };
 
         statusBadge.className = 'badge bg-primary-subtle text-primary px-3 py-2 fs-6';
         statusBadge.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Activating camera...';
 
+        function handleScanSuccess(decodedText, decodedResult) {
+            playScanBeep();
+            
+            // Visual feedback on reticle HUD
+            const reticle = document.getElementById('scanner_reticle');
+            if (reticle) {
+                reticle.style.borderColor = '#198754';
+                reticle.style.boxShadow = '0 0 20px rgba(25, 135, 84, 0.9)';
+            }
+
+            statusBadge.className = 'badge bg-success-subtle text-success px-3 py-2 fs-6';
+            statusBadge.innerHTML = `<i class="fa-solid fa-check me-1"></i> Scanned: <strong>${decodedText}</strong>`;
+
+            stopCameraScanner().then(() => {
+                const modalEl = document.getElementById('cameraScannerModal');
+                const bsModal = bootstrap.Modal.getInstance(modalEl);
+                if (bsModal) bsModal.hide();
+
+                const searchInput = document.getElementById('pos_search_input');
+                searchInput.value = decodedText;
+                tryBarcodeLookup(decodedText);
+            });
+        }
+
         html5QrCodeScanner.start(
             cameraConfig,
             config,
-            (decodedText, decodedResult) => {
-                // Successful barcode scan
-                playScanBeep();
-                statusBadge.className = 'badge bg-success-subtle text-success px-3 py-2 fs-6';
-                statusBadge.innerHTML = `<i class="fa-solid fa-check me-1"></i> Scanned: <strong>${decodedText}</strong>`;
-
-                stopCameraScanner().then(() => {
-                    const modalEl = document.getElementById('cameraScannerModal');
-                    const bsModal = bootstrap.Modal.getInstance(modalEl);
-                    if (bsModal) bsModal.hide();
-
-                    const searchInput = document.getElementById('pos_search_input');
-                    searchInput.value = decodedText;
-                    tryBarcodeLookup(decodedText);
-                });
-            },
+            handleScanSuccess,
             (errorMessage) => {
-                // Seeking frame...
+                // Seek frame
             }
         ).then(() => {
             isCameraScanning = true;
             statusBadge.className = 'badge bg-secondary-subtle text-secondary px-3 py-2 fs-6';
-            statusBadge.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Align barcode within camera frame';
+            statusBadge.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Align barcode within camera target';
+            
+            // Set up Auto-Zoom and Continuous Autofocus
+            setTimeout(setupCameraCapabilities, 350);
         }).catch(err => {
-            statusBadge.className = 'badge bg-danger-subtle text-danger px-3 py-2 fs-6';
-            statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> ${err.message || 'Camera access denied or unavailable'}`;
+            console.warn("Primary camera start failed, retrying default facingMode:", err);
+            // Fallback retry
+            html5QrCodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                handleScanSuccess,
+                () => {}
+            ).then(() => {
+                isCameraScanning = true;
+                statusBadge.className = 'badge bg-secondary-subtle text-secondary px-3 py-2 fs-6';
+                statusBadge.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Align barcode within camera target';
+                setTimeout(setupCameraCapabilities, 350);
+            }).catch(fallbackErr => {
+                let msg = (typeof fallbackErr === 'string') ? fallbackErr : ((typeof err === 'string') ? err : (err?.message || fallbackErr?.message || 'Camera access denied or unavailable'));
+                statusBadge.className = 'badge bg-danger-subtle text-danger px-3 py-2 fs-6';
+                statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> ${msg}`;
+            });
         });
     }
 }
 
+function setupCameraCapabilities() {
+    const videoEl = document.querySelector('#camera_reader video');
+    if (videoEl && videoEl.srcObject) {
+        currentVideoTrack = videoEl.srcObject.getVideoTracks()[0] || null;
+    }
+    
+    if (!currentVideoTrack) return;
+
+    const caps = typeof currentVideoTrack.getCapabilities === 'function' ? currentVideoTrack.getCapabilities() : {};
+
+    // 1. Continuous Auto-focus
+    try {
+        currentVideoTrack.applyConstraints({
+            advanced: [{ focusMode: "continuous" }]
+        }).catch(() => {});
+    } catch(e) {}
+
+    // 2. Torch capability
+    const torchBtn = document.getElementById('btn_toggle_torch');
+    if (caps.torch && torchBtn) {
+        torchBtn.style.display = 'inline-block';
+    } else if (torchBtn) {
+        torchBtn.style.display = 'none';
+    }
+
+    // 3. Auto-Zoom Feature: default to 1.5x so barcodes are captured without holding too close
+    if (caps.zoom) {
+        let autoZoom = Math.min(caps.zoom.max || 3.0, Math.max(caps.zoom.min || 1.0, 1.5));
+        applyCameraZoom(autoZoom);
+    } else {
+        applyCameraZoom(1.5);
+    }
+}
+
+function applyCameraZoom(level) {
+    currentZoom = level;
+
+    // Update zoom UI pills
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        let z = parseFloat(btn.getAttribute('data-zoom'));
+        if (Math.abs(z - level) < 0.25) {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-primary');
+        } else {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-secondary');
+        }
+    });
+
+    // Hardware optical / digital zoom
+    if (currentVideoTrack && typeof currentVideoTrack.getCapabilities === 'function') {
+        const caps = currentVideoTrack.getCapabilities();
+        if (caps.zoom) {
+            let clamped = Math.min(caps.zoom.max, Math.max(caps.zoom.min, level));
+            currentVideoTrack.applyConstraints({
+                advanced: [{ zoom: clamped }]
+            }).catch(() => {
+                applyCssDigitalZoom(level);
+            });
+            return;
+        }
+    }
+
+    // CSS Hardware-accelerated zoom fallback
+    applyCssDigitalZoom(level);
+}
+
+function applyCssDigitalZoom(level) {
+    const videoEl = document.querySelector('#camera_reader video');
+    if (videoEl) {
+        videoEl.style.transform = `scale(${level}) translateZ(0)`;
+        videoEl.style.transformOrigin = 'center center';
+        videoEl.style.transition = 'transform 0.2s ease-out';
+    }
+}
+
+function triggerAutoAlign() {
+    const reticle = document.getElementById('scanner_reticle');
+    if (reticle) {
+        reticle.classList.add('pulse-reticle');
+        setTimeout(() => reticle.classList.remove('pulse-reticle'), 600);
+    }
+
+    if (currentVideoTrack) {
+        try {
+            currentVideoTrack.applyConstraints({
+                advanced: [{ focusMode: "continuous" }]
+            }).catch(() => {});
+        } catch(e) {}
+    }
+
+    const statusBadge = document.getElementById('camera_scan_status');
+    if (statusBadge) {
+        statusBadge.className = 'badge bg-info-subtle text-info px-3 py-2 fs-6';
+        statusBadge.innerHTML = '<i class="fa-solid fa-arrows-to-dot fa-spin me-1"></i> Auto-focusing & aligning...';
+        setTimeout(() => {
+            statusBadge.className = 'badge bg-secondary-subtle text-secondary px-3 py-2 fs-6';
+            statusBadge.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Align barcode within camera target';
+        }, 1000);
+    }
+}
+
+function toggleTorch() {
+    if (!currentVideoTrack) return;
+    isTorchOn = !isTorchOn;
+    try {
+        currentVideoTrack.applyConstraints({
+            advanced: [{ torch: isTorchOn }]
+        }).then(() => {
+            const torchBtn = document.getElementById('btn_toggle_torch');
+            const torchLabel = document.getElementById('torch_label');
+            if (isTorchOn) {
+                torchBtn.className = 'btn btn-sm btn-warning py-0 px-2';
+                if (torchLabel) torchLabel.innerText = 'Torch ON';
+            } else {
+                torchBtn.className = 'btn btn-sm btn-outline-warning py-0 px-2';
+                if (torchLabel) torchLabel.innerText = 'Torch';
+            }
+        }).catch(err => {
+            console.warn('Torch toggle not supported:', err);
+        });
+    } catch(e) {}
+}
+
 function stopCameraScanner() {
+    if (currentVideoTrack) {
+        try {
+            currentVideoTrack.stop();
+        } catch(e) {}
+        currentVideoTrack = null;
+    }
+    isTorchOn = false;
+
+    // Reset reticle style
+    const reticle = document.getElementById('scanner_reticle');
+    if (reticle) {
+        reticle.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+        reticle.style.boxShadow = 'none';
+    }
+
     if (html5QrCodeScanner && isCameraScanning) {
         return html5QrCodeScanner.stop().then(() => {
             isCameraScanning = false;
@@ -1327,11 +1613,6 @@ function submitSale() {
             alert(`Cannot complete sale: Received amount (Rs. ${paid.toFixed(2)}) is less than bill amount (Rs. ${total.toFixed(2)})!`);
             return;
         }
-    }
-            alert('Cannot give credit to anonymous Walk-in Customer! Please select or add a registered customer.');
-            return;
-        }
-        paid = 0.00;
     }
 
     const payload = {
