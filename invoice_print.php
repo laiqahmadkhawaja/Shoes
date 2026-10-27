@@ -69,7 +69,7 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
            6. Both 58mm (48mm printable) and 80mm (72mm printable)
            ======================================================== */
         .thermal-receipt,
-        .thermal-receipt * {
+        .thermal-receipt *:not(#receipt_barcode) {
             font-family: Arial, "Helvetica Neue", Helvetica, "Segoe UI", Tahoma, sans-serif !important;
             font-weight: 700 !important;
             color: #000000 !important;
@@ -79,6 +79,14 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
             -moz-osx-font-smoothing: grayscale !important;
             text-rendering: geometricPrecision !important;
             box-sizing: border-box;
+        }
+
+        #receipt_barcode {
+            background-color: #ffffff !important;
+            image-rendering: pixelated !important;
+            image-rendering: crisp-edges !important;
+            display: block !important;
+            margin: 0 auto !important;
         }
 
         .thermal-receipt {
@@ -105,10 +113,16 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
             line-height: 1.25;
         }
 
-        .thermal-receipt .border-dashed {
-            border-top: 1px dashed #000000 !important;
-            margin: 5px 0;
-            height: 0;
+        .thermal-receipt .receipt-divider {
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: 1px;
+            font-size: 10px;
+            line-height: 1;
+            margin: 4px 0;
+            user-select: none;
+            color: #000000 !important;
         }
 
         .thermal-receipt .border-double {
@@ -119,7 +133,7 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
         }
 
         .thermal-receipt .border-bottom-solid {
-            border-bottom: 1px solid #000000 !important;
+            border-bottom: 1.5px solid #000000 !important;
         }
 
         /* A4 Layout */
@@ -218,37 +232,41 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
         <div style="font-size: <?= $roll_width === 58 ? '9px' : '10.5px' ?>;">Ph: <?= clean($phone) ?></div>
     </div>
 
-    <div class="border-dashed"></div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
-    <!-- Bill Meta Info -->
-    <div class="d-flex justify-content-between" style="font-size: <?= $roll_width === 58 ? '9.5px' : '11px' ?>;">
-        <span>Inv: <?= clean($sale['invoice_no']) ?></span>
-        <span><?= date('d/m/Y h:i A', strtotime($sale['sale_date'])) ?></span>
-    </div>
-    <div class="d-flex justify-content-between" style="font-size: <?= $roll_width === 58 ? '9.5px' : '11px' ?>;">
-        <span>Cashier: <?= clean($sale['cashier_name'] ?? 'Counter') ?></span>
-        <span>Cust: <?= clean($sale['customer_name'] ?? 'Walk-in') ?></span>
-    </div>
+    <!-- Bill Meta Info (Tabular to avoid awkward wrapping) -->
+    <table class="w-100" style="font-size: <?= $roll_width === 58 ? '9px' : '10.5px' ?>; line-height: 1.25;">
+        <tr>
+            <td style="width: 50%;">Inv: <?= clean($sale['invoice_no']) ?></td>
+            <td class="text-end" style="width: 50%;"><?= date('d/m/Y h:i A', strtotime($sale['sale_date'])) ?></td>
+        </tr>
+        <tr>
+            <td colspan="2">Cashier: <?= clean($sale['cashier_name'] ?? 'Counter') ?></td>
+        </tr>
+        <tr>
+            <td colspan="2">Cust: <?= clean($sale['customer_name'] ?? 'Walk-in Customer') ?></td>
+        </tr>
+    </table>
 
-    <div class="border-dashed"></div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
     <!-- Items Table -->
-    <table class="w-100" style="font-size: <?= $roll_width === 58 ? '10px' : '11.5px' ?>;">
+    <table class="w-100" style="font-size: <?= $roll_width === 58 ? '9.5px' : '11px' ?>; border-collapse: collapse;">
         <thead>
             <tr class="border-bottom-solid">
-                <th style="width: 48%; text-align: left; padding-bottom: 2px;">Item/Size/Color</th>
-                <th class="text-center" style="width: 14%; padding-bottom: 2px;">Qty</th>
-                <th class="text-end" style="width: 18%; padding-bottom: 2px;">Rate</th>
-                <th class="text-end" style="width: 20%; padding-bottom: 2px;">Total</th>
+                <th style="width: 48%; text-align: left; padding: 2px 0;">Item/Size/Color</th>
+                <th class="text-center" style="width: 14%; padding: 2px 0;">Qty</th>
+                <th class="text-end" style="width: 18%; padding: 2px 0;">Rate</th>
+                <th class="text-end" style="width: 20%; padding: 2px 0;">Total</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($items as $item): ?>
                 <tr>
-                    <td class="pt-1" style="word-break: break-word;">
-                        <div style="font-size: <?= $roll_width === 58 ? '10px' : '11.5px' ?>;"><?= clean($item['product_name']) ?></div>
-                        <div style="font-size: <?= $roll_width === 58 ? '8.5px' : '10px' ?>;">
-                            Art: <?= clean($item['article_code']) ?> | Sz: <?= clean($item['size_number']) ?> | <?= clean($item['color_name']) ?>
+                    <td class="pt-1" style="word-break: break-word; line-height: 1.2;">
+                        <div><?= clean($item['product_name']) ?></div>
+                        <div style="font-size: <?= $roll_width === 58 ? '8px' : '9.5px' ?>;">
+                            [<?= clean($item['article_code']) ?>] Sz: <?= clean($item['size_number']) ?>, <?= clean($item['color_name']) ?>
                         </div>
                     </td>
                     <td class="text-center align-top pt-1"><?= $item['quantity'] ?></td>
@@ -259,7 +277,7 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
         </tbody>
     </table>
 
-    <div class="border-dashed"></div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
     <!-- Totals Summary -->
     <table class="w-100" style="font-size: <?= $roll_width === 58 ? '10px' : '11.5px' ?>;">
@@ -295,11 +313,14 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
         <?php endif; ?>
     </table>
 
-    <div class="border-dashed"></div>
+    <div class="receipt-divider">- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
 
-    <!-- Barcode Image -->
-    <div class="text-center my-1">
-        <svg id="receipt_barcode"></svg>
+    <!-- Barcode Image (Crisp pixel-rendered canvas) -->
+    <div class="text-center my-2">
+        <img id="receipt_barcode" alt="Barcode" style="max-width: 95%;">
+        <div style="font-size: <?= $roll_width === 58 ? '9px' : '10.5px' ?>; letter-spacing: 1px; margin-top: 2px;">
+            <?= clean($sale['invoice_no']) ?>
+        </div>
     </div>
 
     <!-- Exchange Policy Notes -->
@@ -381,8 +402,8 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
     <!-- Totals & Barcode -->
     <div class="row align-items-center mb-4">
         <div class="col-6 text-center">
-            <svg id="receipt_barcode"></svg>
-            <div class="small text-muted mt-1"><?= clean($sale['invoice_no']) ?></div>
+            <img id="receipt_barcode" alt="Barcode" class="mx-auto" style="max-width: 280px; image-rendering: pixelated; image-rendering: crisp-edges;">
+            <div class="small fw-bold mt-1" style="letter-spacing: 1px;"><?= clean($sale['invoice_no']) ?></div>
         </div>
         <div class="col-6">
             <div class="card p-3 bg-light border-0">
@@ -424,17 +445,38 @@ $footer_en = get_setting('receipt_footer', 'Exchange within 7 days with bill and
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    JsBarcode("#receipt_barcode", "<?= clean($sale['invoice_no']) ?>", {
-        format: "CODE128",
-        width: <?= ($type === 'thermal' && $roll_width === 58) ? '1.15' : '1.45' ?>,
-        height: <?= ($type === 'thermal' && $roll_width === 58) ? '28' : '34' ?>,
-        displayValue: false,
-        margin: 0,
-        lineColor: "#000000"
-    });
+    var isThermal = <?= $type === 'thermal' ? 'true' : 'false' ?>;
+    var is58 = <?= ($type === 'thermal' && $roll_width === 58) ? 'true' : 'false' ?>;
+    
+    // Create raster canvas to generate clean 1-bit crisp monochrome barcode
+    // Module width 1px avoids subpixel anti-aliasing bleeds on 203 DPI thermal printers
+    var canvas = document.createElement("canvas");
+    var modWidth = 1;
+    var bcHeight = is58 ? 28 : (isThermal ? 34 : 40);
+
+    try {
+        JsBarcode(canvas, "<?= clean($sale['invoice_no']) ?>", {
+            format: "CODE128",
+            width: modWidth,
+            height: bcHeight,
+            displayValue: false,
+            margin: 6,
+            background: "#ffffff",
+            lineColor: "#000000"
+        });
+
+        var bcImg = document.getElementById("receipt_barcode");
+        if (bcImg) {
+            bcImg.src = canvas.toDataURL("image/png");
+        }
+    } catch (e) {
+        console.error("Barcode generation error:", e);
+    }
 
     <?php if ($auto_print): ?>
-        window.print();
+        setTimeout(function() {
+            window.print();
+        }, 250);
     <?php endif; ?>
 });
 </script>

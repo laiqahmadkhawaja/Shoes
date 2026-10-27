@@ -165,18 +165,41 @@ try {
         $notes = trim($input['notes'] ?? '');
 
         // Determine payment status & change with strict validation
+        // Walk-in Customer can NEVER be given credit (Khata) or partial unpaid balance
+        $is_walkin = false;
+        if ($customer_id <= 1) {
+            $is_walkin = true;
+        } else {
+            $stmtCust = $db->prepare("SELECT id, name FROM customers WHERE id = ?");
+            $stmtCust->execute([$customer_id]);
+            $custRow = $stmtCust->fetch();
+            if (!$custRow || stripos($custRow['name'], 'walk-in') !== false || stripos($custRow['name'], 'walkin') !== false) {
+                $is_walkin = true;
+            }
+        }
+
         $change_amount = 0.00;
         if ($payment_method === 'credit') {
-            if ($customer_id == 1) {
-                echo json_encode(['success' => false, 'message' => 'Credit sale is not allowed for Walk-in Customer!']);
+            if ($is_walkin) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Credit sale (Khata) is not allowed for Walk-in Customer! Please select or register a valid customer.'
+                ]);
                 exit;
             }
             $payment_status = 'due';
             $paid_amount = 0.00;
         } else {
             if ($paid_amount < $grand_total) {
+                $short = $grand_total - $paid_amount;
+                if ($is_walkin) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Sale for Walk-in Customer cannot be saved as credit or partial unpaid balance! Short by Rs. ' . number_format($short, 2) . '. Full payment is required.'
+                    ]);
+                    exit;
+                }
                 if ($payment_method === 'cash') {
-                    $short = $grand_total - $paid_amount;
                     echo json_encode([
                         'success' => false, 
                         'message' => 'Cash received (Rs. ' . number_format($paid_amount, 2) . ') is less than bill amount (Rs. ' . number_format($grand_total, 2) . '). Short by Rs. ' . number_format($short, 2) . '. Sale cannot be completed with insufficient cash.'

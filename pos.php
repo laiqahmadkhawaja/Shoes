@@ -665,8 +665,27 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pos_customer_select').addEventListener('change', function() {
         let opt = this.options[this.selectedIndex];
         let bal = parseFloat(opt.getAttribute('data-balance') || 0);
-        document.getElementById('cust_balance_badge').innerText = 'Bal: Rs. ' + bal.toFixed(2);
+        let badge = document.getElementById('cust_balance_badge');
+        if (bal > 0) {
+            badge.className = 'input-group-text bg-danger-subtle text-danger small fw-bold';
+            badge.innerText = 'Due: Rs. ' + bal.toFixed(2);
+        } else {
+            badge.className = 'input-group-text bg-light text-muted small';
+            badge.innerText = 'Bal: Rs. ' + bal.toFixed(2);
+        }
+        syncCustomerCreditState();
     });
+
+    // Guard Khata (Credit) button if Walk-in Customer is selected
+    const creditLabel = document.querySelector('label[for="pm_credit"]');
+    if (creditLabel) {
+        creditLabel.addEventListener('click', function(e) {
+            if (isWalkInCustomer()) {
+                e.preventDefault();
+                alert('Cannot sell on credit (Khata) to Walk-in Customer!\n\nPlease select an existing customer or click "+ New Customer" to register them.');
+            }
+        });
+    }
 
     // Discount change on main screen
     document.getElementById('pos_discount_input').addEventListener('input', function() {
@@ -1443,12 +1462,52 @@ function getCartGrandTotal() {
     return Math.max(0, subtotal - discount);
 }
 
+// Check if currently selected customer is Walk-in Customer
+function isWalkInCustomer() {
+    let select = document.getElementById('pos_customer_select');
+    if (!select) return true;
+    let val = select.value;
+    let text = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+    return (val === '1' || val === '' || val === '0' || text.toLowerCase().includes('walk-in') || text.toLowerCase().includes('counter'));
+}
+
+// Enable or disable Khata (Credit) based on customer selection
+function syncCustomerCreditState() {
+    let isWalkIn = isWalkInCustomer();
+    let creditRadio = document.getElementById('pm_credit');
+    let creditLabel = document.querySelector('label[for="pm_credit"]');
+    
+    if (creditRadio && creditLabel) {
+        if (isWalkIn) {
+            creditRadio.disabled = true;
+            creditLabel.classList.add('opacity-50');
+            creditLabel.style.cursor = 'not-allowed';
+            creditLabel.setAttribute('title', 'Khata (Credit) is not allowed for Walk-in Customer.');
+            // If credit was selected, switch to cash
+            if (creditRadio.checked) {
+                let cashRadio = document.getElementById('pm_cash');
+                if (cashRadio) {
+                    cashRadio.checked = true;
+                    cashRadio.dispatchEvent(new Event('change'));
+                }
+            }
+        } else {
+            creditRadio.disabled = false;
+            creditLabel.classList.remove('opacity-50');
+            creditLabel.style.cursor = 'pointer';
+            creditLabel.removeAttribute('title');
+        }
+    }
+}
+
 // Open Payment Modal
 function openPaymentModal() {
     if (cart.length === 0) {
         alert('Cart is empty. Please add items to checkout.');
         return;
     }
+
+    syncCustomerCreditState();
 
     let currentDiscount = parseFloat(document.getElementById('pos_discount_input').value) || 0;
     const modalDiscInput = document.getElementById('modal_discount_input');
@@ -1608,8 +1667,8 @@ function submitSale() {
         splitPayments.push({ method: 'card', amount: sCard });
         paid = sum;
     } else if (method === 'credit') {
-        if (customerId == '1') {
-            alert('Cannot give credit to anonymous Walk-in Customer! Please select or add a registered customer.');
+        if (isWalkInCustomer() || customerId == '1') {
+            alert('Cannot save sale as credit for Walk-in Customer!\n\nPlease select an existing customer or click "+ New Customer" to register them.');
             return;
         }
         paid = 0.00;
@@ -1618,6 +1677,13 @@ function submitSale() {
             alert(`Cannot complete sale: Received amount (Rs. ${paid.toFixed(2)}) is less than bill amount (Rs. ${total.toFixed(2)})!`);
             return;
         }
+    }
+
+    // Additional safeguard: Walk-in customer can never have unpaid remainder
+    if ((isWalkInCustomer() || customerId == '1') && paid < total) {
+        let short = (total - paid).toFixed(2);
+        alert(`Cannot complete sale!\n\nWalk-in Customer cannot have an unpaid balance (Short by Rs. ${short}).\nFull bill amount must be paid.`);
+        return;
     }
 
     const payload = {
