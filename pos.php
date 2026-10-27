@@ -377,9 +377,14 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="d-flex flex-column gap-2">
-                    <a id="btn_print_thermal" href="#" target="_blank" class="btn btn-dark py-2 fw-bold">
-                        <i class="fa-solid fa-print me-2"></i> Print Thermal Receipt (80mm)
-                    </a>
+                    <div class="btn-group w-100" role="group">
+                        <a id="btn_print_thermal" href="#" target="_blank" class="btn btn-dark py-2 fw-bold">
+                            <i class="fa-solid fa-receipt me-1"></i> Thermal (80mm)
+                        </a>
+                        <a id="btn_print_thermal_58" href="#" target="_blank" class="btn btn-outline-dark py-2 fw-bold">
+                            <i class="fa-solid fa-receipt me-1"></i> (58mm)
+                        </a>
+                    </div>
                     <a id="btn_print_a4" href="#" target="_blank" class="btn btn-outline-secondary py-2">
                         <i class="fa-solid fa-file-invoice me-2"></i> Print A4 Invoice
                     </a>
@@ -1646,7 +1651,9 @@ function submitSale() {
             document.getElementById('success_paid_amount').innerText = 'Rs. ' + parseFloat(data.paid_amount).toFixed(2);
             document.getElementById('success_change_amount').innerText = 'Rs. ' + parseFloat(data.change_amount).toFixed(2);
 
-            document.getElementById('btn_print_thermal').href = `invoice_print.php?id=${data.sale_id}&type=thermal&auto_print=1`;
+            document.getElementById('btn_print_thermal').href = `invoice_print.php?id=${data.sale_id}&type=thermal&width=80&auto_print=1`;
+            const btn58 = document.getElementById('btn_print_thermal_58');
+            if (btn58) btn58.href = `invoice_print.php?id=${data.sale_id}&type=thermal&width=58&auto_print=1`;
             document.getElementById('btn_print_a4').href = `invoice_print.php?id=${data.sale_id}&type=a4&auto_print=1`;
 
             const successModal = new bootstrap.Modal(document.getElementById('saleSuccessModal'));

@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'tax_rate' => (float)($_POST['tax_rate'] ?? 0),
         'return_policy_days' => (int)($_POST['return_policy_days'] ?? 7),
         'print_type' => clean($_POST['print_type'] ?? 'thermal'),
+        'thermal_width' => (int)($_POST['thermal_width'] ?? 80),
         'receipt_footer' => trim($_POST['receipt_footer'] ?? '')
     ];
 
@@ -115,15 +116,22 @@ require_once __DIR__ . '/includes/header.php';
                     </h5>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small fw-bold text-secondary">Default Print Format</label>
                             <select name="print_type" class="form-select">
-                                <option value="thermal" <?= get_setting('print_type') === 'thermal' ? 'selected' : '' ?>>Thermal Receipt (80mm)</option>
+                                <option value="thermal" <?= get_setting('print_type') === 'thermal' ? 'selected' : '' ?>>Thermal Receipt</option>
                                 <option value="a4" <?= get_setting('print_type') === 'a4' ? 'selected' : '' ?>>Full A4 Invoice</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Return / Exchange Allowed Days</label>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Thermal Roll Width</label>
+                            <select name="thermal_width" class="form-select">
+                                <option value="80" <?= get_setting('thermal_width', '80') == '80' ? 'selected' : '' ?>>80mm Roll (72mm Printable)</option>
+                                <option value="58" <?= get_setting('thermal_width', '80') == '58' ? 'selected' : '' ?>>58mm Roll (48mm Printable)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Return / Exchange Days</label>
                             <div class="input-group">
                                 <input type="number" name="return_policy_days" class="form-control" value="<?= clean(get_setting('return_policy_days', '7')) ?>" min="1" max="60">
                                 <span class="input-group-text">Days</span>
